@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css"><link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css"><link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+         /* Styling for the map container and the select element */
+         .select-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            padding: 20px;
+            }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            }
+        </style>
+        <title>Uyo Metropolis Filling Station Mapping with Routing to Combat Fire Disaster </title>
+    </head>
+    <body>
+        <!-- Added a container so that the select element is not hidden by the map -->
+        <div class="map-container">
+            <div id="map"></div>
+          
+          
+         <div class="select-container">
+            <label for="start">Choose starting point:</label>
+            <select id="start">
+                <option value="5.029988333,7.94276667"><h1></h1>State Fire Station </option>
+                <option value="5.018041667,7.886773333 ">Federal Fire Station</option>
+              </select>
+          </div>
+        </div>
+
+
+
+
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script><script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet-svg-shape-markers.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/FillingStations_1.js"></script>
+        <script src="data/FireStation_2.js"></script>
+        <script src="data/400mRadiusBuffer_3.js"></script>
+        <script src="data/2KMFireStationBufferRadius_4.js"></script>
+        <script src="data/4KMFireStationBufferRadius_5.js"></script>
+        <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:11
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+            map.setMaxBounds(map.getBounds());
+        }
+        map.createPane('pane_OSMStandard_0');
+        map.getPane('pane_OSMStandard_0').style.zIndex = 1;
+        var layer_OSMStandard_0 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OSMStandard_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+            minZoom: 11,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OSMStandard_0;
+        map.addLayer(layer_OSMStandard_0);
+        function pop_FillingStations_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2"><strong>Name</strong><br />' + (feature.properties['Name of Fi'] !== null ? autolinker.link(feature.properties['Name of Fi'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td>' + (feature.properties['Address'] !== null ? autolinker.link(feature.properties['Address'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">No of Pump</th>\
+                        <td>' + (feature.properties['Number of'] !== null ? autolinker.link(feature.properties['Number of'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Ownership Type</th>\
+                        <td>' + (feature.properties['Type of Ow'] !== null ? autolinker.link(feature.properties['Type of Ow'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Distance F</th>\
+                        <td>' + (feature.properties['Distance F'] !== null ? autolinker.link(feature.properties['Distance F'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Road Type</th>\
+                        <td>' + (feature.properties['Type of Ro'] !== null ? autolinker.link(feature.properties['Type of Ro'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Other - Pu'] !== null ? autolinker.link(feature.properties['Other - Pu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance t'] !== null ? autolinker.link(feature.properties['Distance t'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Product Available</th>\
+                        <td>' + (feature.properties['Products T'] !== null ? autolinker.link(feature.properties['Products T'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Picture</th>\
+                        <td>' + (feature.properties['Picture'] !== null ? '<img src="' + feature.properties['Picture'] + '" style="max-width: 100%;"/>' : '') + '</td>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_FillingStations_1_0() {
+            return {
+                pane: 'pane_FillingStations_1',
+                radius: 5.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(51,160,44,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_FillingStations_1');
+        map.getPane('pane_FillingStations_1').style.zIndex = 401;
+        map.getPane('pane_FillingStations_1').style['mix-blend-mode'] = 'normal';
+        var layer_FillingStations_1 = new L.geoJson(json_FillingStations_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_FillingStations_1',
+            layerName: 'layer_FillingStations_1',
+            pane: 'pane_FillingStations_1',
+            onEachFeature: pop_FillingStations_1,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_FillingStations_1_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_FillingStations_1);
+        map.addLayer(layer_FillingStations_1);
+        function pop_FireStation_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td>' + (feature.properties['Name of Fi'] !== null ? autolinker.link(feature.properties['Name of Fi'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Address</th>\
+                        <td>' + (feature.properties['Address'] !== null ? autolinker.link(feature.properties['Address'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Number o_1</th>\
+                        <td>' + (feature.properties['Number o_1'] !== null ? autolinker.link(feature.properties['Number o_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Hard Suction</th>\
+                        <td>' + (feature.properties['Hard Sucti'] !== null ? autolinker.link(feature.properties['Hard Sucti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Water Availability</th>\
+                        <td>' + (feature.properties['Steady Wat'] !== null ? autolinker.link(feature.properties['Steady Wat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Availabili</th>\
+                        <td>' + (feature.properties['Availabili'] !== null ? autolinker.link(feature.properties['Availabili'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fire Stati</th>\
+                        <td>' + (feature.properties['Fire Stati'] !== null ? autolinker.link(feature.properties['Fire Stati'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Average Ca</th>\
+                        <td>' + (feature.properties['Average Ca'] !== null ? autolinker.link(feature.properties['Average Ca'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Picture</th>\
+                        <td>' + (feature.properties['Picture'] !== null ? autolinker.link(feature.properties['Picture'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_FireStation_2_0() {
+            return {
+                pane: 'pane_FireStation_2',
+                radius: 10.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(227,26,28,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_FireStation_2');
+        map.getPane('pane_FireStation_2').style.zIndex = 402;
+        map.getPane('pane_FireStation_2').style['mix-blend-mode'] = 'normal';
+        var layer_FireStation_2 = new L.geoJson(json_FireStation_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_FireStation_2',
+            layerName: 'layer_FireStation_2',
+            pane: 'pane_FireStation_2',
+            onEachFeature: pop_FireStation_2,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_FireStation_2_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_FireStation_2);
+        map.addLayer(layer_FireStation_2);
+        function pop_400mRadiusBuffer_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ObjectID'] !== null ? autolinker.link(feature.properties['ObjectID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['GlobalID'] !== null ? autolinker.link(feature.properties['GlobalID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Select Fac'] !== null ? autolinker.link(feature.properties['Select Fac'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name of Fi'] !== null ? autolinker.link(feature.properties['Name of Fi'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Address'] !== null ? autolinker.link(feature.properties['Address'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Number of'] !== null ? autolinker.link(feature.properties['Number of'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type of Ow'] !== null ? autolinker.link(feature.properties['Type of Ow'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance F'] !== null ? autolinker.link(feature.properties['Distance F'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type of Ro'] !== null ? autolinker.link(feature.properties['Type of Ro'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Public Ins'] !== null ? autolinker.link(feature.properties['Public Ins'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Other - Pu'] !== null ? autolinker.link(feature.properties['Other - Pu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance t'] !== null ? autolinker.link(feature.properties['Distance t'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Products T'] !== null ? autolinker.link(feature.properties['Products T'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Number o_1'] !== null ? autolinker.link(feature.properties['Number o_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Hard Sucti'] !== null ? autolinker.link(feature.properties['Hard Sucti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Steady Wat'] !== null ? autolinker.link(feature.properties['Steady Wat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Availabili'] !== null ? autolinker.link(feature.properties['Availabili'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Fire Stati'] !== null ? autolinker.link(feature.properties['Fire Stati'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Average Ca'] !== null ? autolinker.link(feature.properties['Average Ca'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['x'] !== null ? autolinker.link(feature.properties['x'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['y'] !== null ? autolinker.link(feature.properties['y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Picture'] !== null ? '<img src="' + feature.properties['Picture'] + '" style="max-width: 100%;"/>' : '') + '</td>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_400mRadiusBuffer_3_0() {
+            return {
+                pane: 'pane_400mRadiusBuffer_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(69,49,183,1.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_400mRadiusBuffer_3');
+        map.getPane('pane_400mRadiusBuffer_3').style.zIndex = 403;
+        map.getPane('pane_400mRadiusBuffer_3').style['mix-blend-mode'] = 'normal';
+        var layer_400mRadiusBuffer_3 = new L.geoJson(json_400mRadiusBuffer_3, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_400mRadiusBuffer_3',
+            layerName: 'layer_400mRadiusBuffer_3',
+            pane: 'pane_400mRadiusBuffer_3',
+            onEachFeature: pop_400mRadiusBuffer_3,
+            style: style_400mRadiusBuffer_3_0,
+        });
+        bounds_group.addLayer(layer_400mRadiusBuffer_3);
+        function pop_2KMFireStationBufferRadius_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ObjectID'] !== null ? autolinker.link(feature.properties['ObjectID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['GlobalID'] !== null ? autolinker.link(feature.properties['GlobalID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Select Fac'] !== null ? autolinker.link(feature.properties['Select Fac'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name of Fi'] !== null ? autolinker.link(feature.properties['Name of Fi'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Address'] !== null ? autolinker.link(feature.properties['Address'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Number of'] !== null ? autolinker.link(feature.properties['Number of'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type of Ow'] !== null ? autolinker.link(feature.properties['Type of Ow'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance F'] !== null ? autolinker.link(feature.properties['Distance F'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type of Ro'] !== null ? autolinker.link(feature.properties['Type of Ro'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Public Ins'] !== null ? autolinker.link(feature.properties['Public Ins'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Other - Pu'] !== null ? autolinker.link(feature.properties['Other - Pu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance t'] !== null ? autolinker.link(feature.properties['Distance t'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Products T'] !== null ? autolinker.link(feature.properties['Products T'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Number o_1'] !== null ? autolinker.link(feature.properties['Number o_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Hard Sucti'] !== null ? autolinker.link(feature.properties['Hard Sucti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Steady Wat'] !== null ? autolinker.link(feature.properties['Steady Wat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Availabili'] !== null ? autolinker.link(feature.properties['Availabili'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Fire Stati'] !== null ? autolinker.link(feature.properties['Fire Stati'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Average Ca'] !== null ? autolinker.link(feature.properties['Average Ca'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['x'] !== null ? autolinker.link(feature.properties['x'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['y'] !== null ? autolinker.link(feature.properties['y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Picture'] !== null ? autolinker.link(feature.properties['Picture'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_2KMFireStationBufferRadius_4_0() {
+            return {
+                pane: 'pane_2KMFireStationBufferRadius_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(164,113,88,1.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_2KMFireStationBufferRadius_4');
+        map.getPane('pane_2KMFireStationBufferRadius_4').style.zIndex = 404;
+        map.getPane('pane_2KMFireStationBufferRadius_4').style['mix-blend-mode'] = 'normal';
+        var layer_2KMFireStationBufferRadius_4 = new L.geoJson(json_2KMFireStationBufferRadius_4, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_2KMFireStationBufferRadius_4',
+            layerName: 'layer_2KMFireStationBufferRadius_4',
+            pane: 'pane_2KMFireStationBufferRadius_4',
+            onEachFeature: pop_2KMFireStationBufferRadius_4,
+            style: style_2KMFireStationBufferRadius_4_0,
+        });
+        bounds_group.addLayer(layer_2KMFireStationBufferRadius_4);
+        function pop_4KMFireStationBufferRadius_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (i in e.target._eventParents) {
+                        e.target._eventParents[i].resetStyle(e.target);
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ObjectID'] !== null ? autolinker.link(feature.properties['ObjectID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['GlobalID'] !== null ? autolinker.link(feature.properties['GlobalID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Select Fac'] !== null ? autolinker.link(feature.properties['Select Fac'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Name of Fi'] !== null ? autolinker.link(feature.properties['Name of Fi'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Address'] !== null ? autolinker.link(feature.properties['Address'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Number of'] !== null ? autolinker.link(feature.properties['Number of'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type of Ow'] !== null ? autolinker.link(feature.properties['Type of Ow'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance F'] !== null ? autolinker.link(feature.properties['Distance F'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Type of Ro'] !== null ? autolinker.link(feature.properties['Type of Ro'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Public Ins'] !== null ? autolinker.link(feature.properties['Public Ins'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Other - Pu'] !== null ? autolinker.link(feature.properties['Other - Pu'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Distance t'] !== null ? autolinker.link(feature.properties['Distance t'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Products T'] !== null ? autolinker.link(feature.properties['Products T'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Number o_1'] !== null ? autolinker.link(feature.properties['Number o_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Hard Sucti'] !== null ? autolinker.link(feature.properties['Hard Sucti'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Steady Wat'] !== null ? autolinker.link(feature.properties['Steady Wat'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Availabili'] !== null ? autolinker.link(feature.properties['Availabili'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Fire Stati'] !== null ? autolinker.link(feature.properties['Fire Stati'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Average Ca'] !== null ? autolinker.link(feature.properties['Average Ca'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['x'] !== null ? autolinker.link(feature.properties['x'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['y'] !== null ? autolinker.link(feature.properties['y'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Picture'] !== null ? autolinker.link(feature.properties['Picture'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_4KMFireStationBufferRadius_5_0() {
+            return {
+                pane: 'pane_4KMFireStationBufferRadius_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 0.5,
+                fillColor: 'rgba(131,145,132,1.0)',
+                interactive: false,
+            }
+        }
+        map.createPane('pane_4KMFireStationBufferRadius_5');
+        map.getPane('pane_4KMFireStationBufferRadius_5').style.zIndex = 405;
+        map.getPane('pane_4KMFireStationBufferRadius_5').style['mix-blend-mode'] = 'normal';
+        var layer_4KMFireStationBufferRadius_5 = new L.geoJson(json_4KMFireStationBufferRadius_5, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_4KMFireStationBufferRadius_5',
+            layerName: 'layer_4KMFireStationBufferRadius_5',
+            pane: 'pane_4KMFireStationBufferRadius_5',
+            onEachFeature: pop_4KMFireStationBufferRadius_5,
+            style: style_4KMFireStationBufferRadius_5_0,
+        });
+        bounds_group.addLayer(layer_4KMFireStationBufferRadius_5);
+            var title = new L.Control();
+            title.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'info');
+                this.update();
+                return this._div;
+            };
+            title.update = function () {
+                this._div.innerHTML = '<h2>Uyo Metropolis Filling Station Mapping with Routing to Combat Fire Disaster </h2>';
+            };
+            title.addTo(map);
+            var abstract = new L.Control({'position':'topright'});
+            abstract.onAdd = function (map) {
+                this._div = L.DomUtil.create('div',
+                'leaflet-control abstract');
+                this._div.id = 'abstract'
+                    this._div.setAttribute("onmouseenter", "abstract.show()");
+                    this._div.setAttribute("onmouseleave", "abstract.hide()");
+                    this.hide();
+                    return this._div;
+                };
+                abstract.hide = function () {
+                    this._div.classList.remove("abstractUncollapsed");
+                    this._div.classList.add("abstract");
+                    this._div.innerHTML = 'i'
+                }
+                abstract.show = function () {
+                    this._div.classList.remove("abstract");
+                    this._div.classList.add("abstractUncollapsed");
+                    this._div.innerHTML = 'This is a web map that  shows  filling stations in Uyo with a buffer of 400m  around it, and routing service to them to aid combat fire disaster, it also shows the service area that can be cover with the average time of 4 to 5 minutes and 8 to 10 minutes at 2km and 4km respectively. This work is a school project carried out by Emmanuel Okon Jackson with Registration Number 16/EV/LS/424 of  University of Uyo contact @ emmanueljackson119@gmail.com.';
+            };
+            abstract.addTo(map);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var baseMaps = {};
+        L.control.layers(baseMaps,{'<img src="legend/4KMFireStationBufferRadius_5.png" /> 4KM Fire Station Buffer Radius': layer_4KMFireStationBufferRadius_5,'<img src="legend/2KMFireStationBufferRadius_4.png" /> 2KM Fire Station Buffer Radius': layer_2KMFireStationBufferRadius_4,'<img src="legend/400mRadiusBuffer_3.png" /> 400m Radius Buffer': layer_400mRadiusBuffer_3,'<img src="legend/FireStation_2.png" /> Fire Station': layer_FireStation_2,'<img src="legend/FillingStations_1.png" /> Filling Stations': layer_FillingStations_1,"OSM Standard": layer_OSMStandard_0,}).addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_FillingStations_1,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'Name of Fi'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+
+         var marker = L.marker([5.029988333,7.942376667]).addTo(map);
+
+         map.on('click', function (e) {
+            var start = document.getElementById("start").value.split(",");
+            var end = [e.latlng.lat, e.latlng.lng];
+
+            L.Routing.control({
+                waypoints: [
+                    L.latLng(start[0], start[1]),
+                    L.latLng(end[0], end[1])
+                ]
+            }).on('routesfound', function(e) {
+                console.log(e)
+                e.routes[0].coordinates.forEach(function(coord, index){
+                    setTimeout(() => {
+                        marker.setLatLng([coord.lat, coord.lng])
+                    }, 100 * index);
+                })
+
+            })
+                 .addTo(map)
+
+
+        })
+
+
+        </script>
+    </body>
+</html>
